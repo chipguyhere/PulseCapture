@@ -25,12 +25,13 @@ projects that include other code with high interrupt latency (such as WS28xxx LE
 * Poll for incoming events using ```read()```, which always returns immediately, with a return value of 0 and a bit count of 0 if there is no message received.
 
 #### Notes
-* An event is the arrival of a complete message (such as a complete IR command, or a complete RFID card swipe, or a complete PWM timing measurement).  You can also detect a received event without removing it from the buffer, by checking ```capturedBitCount``` for a non-zero value.
+* An event is the arrival of a complete message (such as a complete IR command, or a complete RFID card swipe, or a complete PWM timing measurement).
+* You can detect a received event without removing it from the buffer by checking ```capturedBitCount``` for a non-zero value.
 * Each instance will only buffer one complete "message" event.  If a second event arrives before the first event is read, the first event is overwritten and discarded.  This design is intentional.
 
 ### Infrared receiver:
 
-Declare an instance of PulseCapture, providing the desired pin number, and 'I' for infrared.
+Declare an instance of PulseCapture, providing the desired pin number, and 'I' as the protocol identifier for infrared.
 ```
   PulseCapture IR_receiver(8, 'I');
 ```
@@ -57,11 +58,17 @@ The class will not allow the "key held down" message to overwrite any other unre
 
 ### Wiegand (RFID) receiver:
 
-Wiegand is a popular protocol for RFID readers.  Most readers on the market will return messages of
+Wiegand is a popular protocol for RFID readers.  Most readers that use this protocol will return messages of
 26 or 34 bits (which represent 24- and 32-bit ID numbers with parity bits).  This library removes the
-parity bits and only returns the 24- or 32-bit ID.
+parity bits and only returns the 24- or 32-bit ID.  As implemented, it ignores messages of any
+other length (other than 4-bit keypress messages).
 
-Additionally, an RFID reader with a numeric keypad might report keypresses in the form of 4-bit messages.
+Wiegand is a one-way protocol, with messages simply arriving to indicate successful RFID card reads.
+Since messages are rarely larger than 32 bits, generally only the card serial number is sent (varies by reader).
+Most RFID readers send a message once when a card is presented.  Some RFID readers, but not all,
+will repeat the message a few times per second while the card remains present in the RFID's reading field.
+
+Some RFID readers have numeric keypads.  These report keypresses in the form of 4-bit messages.
 The messages will be the numbers 0 thru F (hex).
 
 The PulseCapture library provides a derived Wiegand class to simplify the creation of PulseCapture on two
