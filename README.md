@@ -38,8 +38,7 @@ In your ```setup()```:
 ```
   IR_receiver.begin();
 ```
-In your ```loop()```, you can poll for received IR messages with the ```read()``` function.  ```read()``` always returns immediately
-and never blocks.  If no message, return value is 0 and receivedBitCount is also set to 0.
+In your ```loop()```, you can poll for received IR messages with the ```read()``` function.  A non-zero return value indicates a message received.
 
 ```  
   byte receivedBitCount;
@@ -65,24 +64,23 @@ parity bits and only returns the 24- or 32-bit ID.
 Additionally, an RFID reader with a numeric keypad might report keypresses in the form of 4-bit messages.
 The messages will be the numbers 0 thru F (hex).
 
-Because there are two pins (Data0 and Data1), you'll declare two instances of PulseCapture.  They will
-detect and interact with each other as long as Data0 is declared first.
+The PulseCapture library provides a derived Wiegand class to simplify the creation of PulseCapture on two
+simultaneous pins.  Create it as follows:
+
 ```
-  PulseCapture wiegand_data0(4, '0');  // Use protocol of '0' to capture Data0
-  PulseCapture Wiegand(5, 'W');        // Use 'W' for pin Data1
+  Wiegand wiegand_receiver(4, 5);   // Read Wiegand protocol on pins 4 (Data0) and 5 (Data1)
 ```
-In your ```loop()```, only the instance connected to Data1 will report events.
+In your ```loop()```, receivedBitCount will indicate 4, 24, or 32 when a message is received, or 0 if none.
 
 ```  
   byte receivedBitCount;
   unsigned long message =  Wiegand.read(&receivedBitCount);
   if (receivedBitCount) {
     Serial.print(receivedBitCount);
-    Serial.print(" bit message received: ");
+    Serial.print("-bit message received: ");
     Serial.println(message);
   }
 ```
-
 
 ## System resources impacted
 
