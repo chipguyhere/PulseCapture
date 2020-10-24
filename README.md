@@ -16,6 +16,31 @@ Hardware input capture uses a 16-bit timer to timestamp the incoming pulses when
 on the microcontroller.  This is especially important when receiving servo PWM to prevent jitter.  It also allows reliable infrared control on
 projects that include other code with high interrupt latency (such as WS28xxx LED strips)
 
+## Basic usage:
+### Infrared receiver:
+
+Declare an instance of PulseCapture, providing the desired pin number, and 'I' for infrared.
+```
+  PulseCapture IR_receiver(8, 'I');
+```
+In your ```setup()```:
+```
+  IR_receiver.begin();
+```
+In your ```loop()```, you can poll for received IR messages as follows:
+```  
+  byte receivedBitCount;
+  unsigned long message =  IR_receiver.read(&receivedBitCount);
+  if (receivedBitCount==32) {
+    Serial.println(message, HEX);
+  } else if (receivedBitCount==1) {
+    // key-held pulse is delivered as a series of single-bit message of "1"
+    // as long as the key remains held down
+    Serial.println("(key held down)");    
+  }
+```
+
+
 ## System resources impacted
 
 This library requires complete control of Timer1 in order to work.  Because of that, using PWM as follows will conflict with this library:
