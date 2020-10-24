@@ -17,6 +17,16 @@ on the microcontroller.  This is especially important when receiving servo PWM t
 projects that include other code with high interrupt latency (such as WS28xxx LED strips)
 
 ## Basic usage:
+### General flow
+
+* Create an instance of the class.
+* Call ```begin()```
+* No further action is needed for the class to receive incoming event messages.
+* Poll for incoming events using ```read()```.  ```read()``` always returns immediately, with a return value and bit count of 0 if there is nothing to return.
+
+* An event is the arrival of a complete message (such as a complete IR command, or a complete RFID card swipe, or a complete PWM timing measurement).  You can also detect a received event without removing it from the buffer, by checking ```capturedBitCount``` for a non-zero value.
+* Each instance will only buffer one complete "message" event.  If a second event arrives before the first event is read, the first event is overwritten and discarded.  This design is intentional.
+
 ### Infrared receiver:
 
 Declare an instance of PulseCapture, providing the desired pin number, and 'I' for infrared.
@@ -27,7 +37,9 @@ In your ```setup()```:
 ```
   IR_receiver.begin();
 ```
-In your ```loop()```, you can poll for received IR messages as follows:
+In your ```loop()```, you can poll for received IR messages with the ```read()``` function.  ```read()``` always returns immediately
+and never blocks.  If no message, return value is 0 and receivedBitCount is also set to 0.
+
 ```  
   byte receivedBitCount;
   unsigned long message =  IR_receiver.read(&receivedBitCount);
@@ -39,6 +51,9 @@ In your ```loop()```, you can poll for received IR messages as follows:
     Serial.println("(key held down)");    
   }
 ```
+
+The "key held down" is a special message in the IR protocol, returned by the class as a single bit message of 1.
+The class will not allow the "key held down" message to overwrite any other unread message in the receive buffer.
 
 ### Wiegand (RFID) receiver:
 
