@@ -101,8 +101,9 @@ public:
   PulseCapture(byte pin, byte _protocol);
   int begin(void);
 
-  // Reads the last message if any, returns the number of valid bits in the message.
-  uint8_t read(uint32_t &message);
+  // Reads the last message if any, optionally returning the count of bits in the message.
+  uint32_t read();
+  uint32_t read(uint8_t *bitcount);
   
   uint8_t capturedBitCount=0;
   uint32_t capturedMessage=0;

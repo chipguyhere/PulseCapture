@@ -20,7 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 
-
 #include <Arduino.h>
 #include "cgh_pulsecapture.h"
 
@@ -191,13 +190,22 @@ int PulseCapture::begin(void) {
 }
 
 
-uint8_t PulseCapture::read(uint32_t &message) {
-  message = capturedMessage;
-  uint8_t rv = capturedBitCount;
+uint32_t PulseCapture::read(uint8_t *bitcount) {
+  *bitcount = capturedBitCount;
+  if (capturedBitCount==0) return 0;
+  uint32_t rv = capturedMessage;
   capturedBitCount=0;
   capturedMessage=0;  
   return rv;
 }
+uint32_t PulseCapture::read() {
+  if (capturedBitCount==0) return 0;
+  uint32_t rv = capturedMessage;
+  capturedBitCount=0;
+  capturedMessage=0;  
+  return rv;
+}
+
 
 
 
