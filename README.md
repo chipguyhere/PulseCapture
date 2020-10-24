@@ -19,10 +19,12 @@ This library uses an enhanced Timer Input Capture hardware feature when your inp
 
 * Download ZIP file from GitHub
 * Unzip into (your Arduino sketchbook folder)/libraries/PulseCapture
+* (Re-)start Arduino IDE
 
 ## Basic usage:
 ### General flow
 
+* ```#include "cgh-PulseCapture.h"```
 * Create an instance of the class.
 * Call ```begin()```
 * No further action is needed for the class to receive incoming event messages.
