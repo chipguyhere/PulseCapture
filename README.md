@@ -10,13 +10,11 @@ On Uno and Nano, you can use any digital or analog input.  The Pin Change Interr
 
 On Arduino Mega, these pins have hardware interrupt support and are the only ones supported by the library: 10, 11, 12, 13, 48, 49, 50, 51, 52, 53, and A8 thru A15.
 
-This library uses an enhanced Timer Input Capture when your input is connected to the specific pin(s) that support it.  
-* On Uno and Nano, pin 8
-* On Mega, pins 48 a 49.
+This library uses an enhanced Timer Input Capture hardware feature when your input is connected to the specific pin(s) that support it.  This is highly recommended for infrared and servo PWM input, especially on projects that have excessive interrupt latency elsewhere (such as those driving WS281xx LED strips).  Timer input capture provides an enhanced resolution of 0.5μs and eliminates servo jitter.
 
-Timer input capture uses a 16-bit timer to timestamp the incoming pulses directly in hardware as they arrive, providing a resolution of 0.5μs
-that is unaffected by other interrupts running on the microcontroller.  This is especially important when receiving servo PWM to prevent jitter.
-It also allows reliable infrared control on projects with high interrupt latency elsewhere in the project (such as WS28xxx LED strips)
+* On Uno and Nano, pin 8
+* On Mega, pins 48 and 49.
+
 
 ## Basic usage:
 ### General flow
