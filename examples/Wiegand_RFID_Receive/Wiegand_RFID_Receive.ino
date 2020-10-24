@@ -14,11 +14,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 // This example demonstrates reading from an RFID reader that connects
 // via the Wiegand interface over two digital inputs.
-// In this example we're using inputs A0 and A1 as digital inputs.
+// In this example we're using inputs 10 and 11 as digital inputs.
+// Wiegand isn't timing critical and doesn't benefit from timer-enhanced input capture.
+// Feel free to use any supported pins.
 
 #include "cgh_PulseCapture.h"
 
-Wiegand wiegand_receiver(A0, A1);
+Wiegand wiegand_receiver(10, 11);
 
 void setup() {
   Serial.begin(115200);
@@ -30,12 +32,12 @@ void setup() {
   // example: low-cost 125KHz RFID reader from Amazon,
   // "UHPPOTE Security RFID EM-ID Card Reader 125KHz Wiegand 26/34 Output for Access Control".
   // Any other reader's wires and appropriate settings almost certainly will vary
-  //pinMode(A2, OUTPUT);
-  //pinMode(A3, OUTPUT);
-  //pinMode(A4, OUTPUT);
-  //digitalWrite(A2, LOW);  // example: low selects 34-bit Wiegand on a grey wire
-  //digitalWrite(A3, LOW); // example: low selects green LED color on a blue wire
-  //digitalWrite(A4, HIGH); // example: high selects beeper off on a yellow wire
+  //pinMode(4, OUTPUT);
+  //pinMode(5, OUTPUT);
+  //pinMode(6, OUTPUT);
+  //digitalWrite(4, LOW);  // example: low selects 34-bit Wiegand on a grey wire, high for 26
+  //digitalWrite(5, LOW); // example: low selects green LED color on a blue wire, high for red
+  //digitalWrite(6, HIGH); // example: high selects beeper off on a yellow wire, low for beep on
     
   Serial.println("Wiegand RFID receive active");
 }
