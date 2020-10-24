@@ -60,9 +60,18 @@ volatile uint8_t edgeEventTail=0;
 volatile uint16_t ovfcount=0;
 
 
+Wiegand::Wiegand(byte pinD0, byte pinD1) {
+	d0_pulsecapture_instance.init(pinD0, '0');
+	init(pinD1, 'W');
+}
+
+PulseCapture::PulseCapture() {}
 
 PulseCapture::PulseCapture(byte pin, byte _protocol) {
-  memset(this, 0, sizeof(PulseCapture));
+  init(pin,_protocol);
+}
+
+void PulseCapture::init(byte pin, byte _protocol) {
 
   bool use_hardware_capture=false;
 
@@ -221,8 +230,8 @@ void handle_irq_queue() {
     byte newtail = (edgeEventTail + 1) & (edgeEventCount-1);
     struct edgeevent *ee = &edgeEvents[newtail];
     
-    for (PulseCapture *ei = first_pulsecapture_instance; ei != NULL; ei = ei->next_pulsecapture_instance) {
-      ei->_handle_irq(ee);  
+    for (PulseCapture *ei = first_pulsecapture_instance; ei != NULL; ) {
+      ei = (PulseCapture*)(ei->_handle_irq(ee));  
     }
     edgeEventTail = newtail; 
   }
@@ -231,27 +240,26 @@ void handle_irq_queue() {
   
 }
 
-void PulseCapture::_handle_irq(void *eev) {
+void* PulseCapture::_handle_irq(void *eev) {
   struct edgeevent *ee = (struct edgeevent*)eev;
-  PulseCapture *ei = this;
     
   
   // Shortcut: if the interrupt is a timer tick, but we're not in a word, then we don't care.      
-  if (ee->portaddr==0 && ei->inword==0) {
+  if (ee->portaddr==0 && inword==0) {
     // don't care.  Timer ticks can only end messages, not begin them.
-  } else if (ee->portaddr != 0 && ee->portaddr != ei->portaddr) {
+  } else if (ee->portaddr != 0 && ee->portaddr != portaddr) {
     // if it's for a different pin on the same port, we also don't care.        
-  } else if (ee->portaddr != 0 && (ee->portRead & ei->mask) == ei->lastRead) {
+  } else if (ee->portaddr != 0 && (ee->portRead & mask) == lastRead) {
     // if it's for our port, but there's no change to our bits, then also don't care.
     // (this case gets tripped if a pulse is so short that it ended before we could read it)        
-  } else if (ei->protocol=='0' && ee->portaddr==0) {
+  } else if (protocol=='0' && ee->portaddr==0) {
     // no need to give timer to both Wiegand pins otherwise we're timering twice, so, don't care        
   } else {
     bool isTimer=false, isRise=false, isFall=false;
     if (ee->portaddr==0) isTimer=true;
     else {
-      ei->lastRead = ee->portRead & ei->mask;         
-      if (ei->lastRead) isRise=true;       
+      lastRead = ee->portRead & mask;         
+      if (lastRead) isRise=true;       
       else isFall=true;
     }
 
@@ -259,61 +267,61 @@ void PulseCapture::_handle_irq(void *eev) {
   
     uint32_t rcvtime = ee->timer.u32;
     // using an input with two pins? sync the time stamps to the later.
-    if (ei->protocol=='0') 
-      if (((long)ei->lastTimestamp - (long)ei->next_pulsecapture_instance->lastTimestamp) > 0) 
-        ei->next_pulsecapture_instance->lastTimestamp = ei->lastTimestamp;
-      else ei->lastTimestamp = ei->next_pulsecapture_instance->lastTimestamp;
+    if (protocol=='0') 
+      if (((long)lastTimestamp - (long)next_pulsecapture_instance->lastTimestamp) > 0) 
+        next_pulsecapture_instance->lastTimestamp = lastTimestamp;
+      else lastTimestamp = next_pulsecapture_instance->lastTimestamp;
 
     
-    long timediff32 = (long)rcvtime - (long)ei->lastTimestamp;
+    long timediff32 = (long)rcvtime - (long)lastTimestamp;
     timediff32 = timediff32 / 2; //------------- hardware dependency: hardcoded clock rate of 2 ticks per microsecond
     uint16_t timediff = (uint32_t)timediff32;
     if (timediff32 > 65535) timediff=65535;
     // update the time stamp for edge events but not timer events
     // (so future timediffs always refer to time since last edge)
-    if (isTimer==false) ei->lastTimestamp = rcvtime;
+    if (isTimer==false) lastTimestamp = rcvtime;
 
 
 
-    if (ei->protocol=='P') {
+    if (protocol=='P') {
       // CAPTURE FOR SERVO PWM
       // it's simple: on falls, if it looks like a valid PWM pulse, the message is its length.
       // Valid pulses are nominally 1000-2000us, but overshoots are allowed.
       if (isFall && timediff > 500 && timediff < 2500) {
-        ei->capturedMessage = timediff;
+        capturedMessage = timediff;
       }
    
-    } else if (ei->protocol=='I') {
+    } else if (protocol=='I') {
       // CAPTURE FOR IR SIGNALS          
       if (isFall) {            
-        if (ei->inword==0 || timediff >= 30000U) {    // first edge of a message?
-          ei->inword=1;
-          ei->bitsreceived=0;
-        } else if (ei->inword==1) { // second edge of a message?  (got the start bit, but we're before the first data bit)
+        if (inword==0 || timediff >= 30000U) {    // first edge of a message?
+          inword=1;
+          bitsreceived=0;
+        } else if (inword==1) { // second edge of a message?  (got the start bit, but we're before the first data bit)
           if (timediff > 2000 && timediff < 2500) {
-            if (((long)rcvtime - (long)(ei->capbuf)) < 131072*2) {
+            if (((long)rcvtime - (long)(capbuf)) < 131072*2) {
               // got the signal that says button is being held down.
               // While inword==0, capbuf is borrowed to be the timestamp of the last good message.
               // for a repeat to be valid, we needed to receive a good message in the last 125ms,
               // and the non-ISR code needs to have picked up the original message to know what to repeat.
-              if (ei->capturedBitCount==0) {
-                  ei->capturedBitCount=1;
-                  ei->capturedMessage=1;
+              if (capturedBitCount==0) {
+                  capturedBitCount=1;
+                  capturedMessage=1;
               }
               if (isTimer) {
               
-                ei->inword=0;
+                inword=0;
               }
-              ei->capbuf=rcvtime;
+              capbuf=rcvtime;
             }
           } else
           // expecting about 4450
           if (timediff < 4000 || timediff > 5000) {
-            ei->inword=0;
+            inword=0;
             
           } else {
-            ei->inword=2;
-            ei->capbuf=0;               
+            inword=2;
+            capbuf=0;               
           }
           // while in a word,
           // the amount of time after a fall (i.e. the beginning of an IR pulse, since pulse is low)
@@ -321,24 +329,24 @@ void PulseCapture::_handle_irq(void *eev) {
           // expecting around 562.5 for a low bit, or 1687.5 for a high bit.
           // look for anything deviating from that, cancelling our word if so.
           // Saw a remote that had ~19925 in one specific bit position
-        } else if (ei->inword != 2) {
-          ei->inword=0;
+        } else if (inword != 2) {
+          inword=0;
           
         } else if (timediff < 400 || timediff > 1880) { // timediff > 20500 || (timediff > 1830 && timediff < 19500)) {      
 
-          ei->inword=0;
+          inword=0;
           
         } else if (timediff > 800 && timediff < 1400) {
 
-          ei->inword=0;
-        } else if (ei->bitsreceived < 32) {
-          if (timediff > 1000) ei->capbuf |= (0x80000000UL >> ei->bitsreceived);        
-          ei->bitsreceived++;
-          if (ei->bitsreceived==32) {
-            ei->capturedMessage = ei->capbuf;
-            ei->capbuf = rcvtime;              
-            ei->capturedBitCount=32;
-            ei->inword=0;           
+          inword=0;
+        } else if (bitsreceived < 32) {
+          if (timediff > 1000) capbuf |= (0x80000000UL >> bitsreceived);        
+          bitsreceived++;
+          if (bitsreceived==32) {
+            capturedMessage = capbuf;
+            capbuf = rcvtime;              
+            capturedBitCount=32;
+            inword=0;           
                  
           }
         }
@@ -349,74 +357,74 @@ void PulseCapture::_handle_irq(void *eev) {
         // ~600 for a normal pulse
         // rises don't start messages because IR receiver is idle high.
         // rises can be shorter than expected in case of low light/contrast.            
-        if (timediff > 11000) ei->inword=0;
-        if (ei->inword==2 && (timediff < 300 || timediff > 750)) ei->inword=0;
+        if (timediff > 11000) inword=0;
+        if (inword==2 && (timediff < 300 || timediff > 750)) inword=0;
       } else if (isTimer && timediff > 10000) {
-        ei->inword=0;
+        inword=0;
         
       }
-    } else if (ei->protocol=='9') {
+    } else if (protocol=='9') {
       // RS232 Serial 9600bps TTL
 
-      if (ei->inword==0 && isFall) {
-        ei->inword=1;
-        ei->bitsreceived=0;
+      if (inword==0 && isFall) {
+        inword=1;
+        bitsreceived=0;
         // we will assume all bits are 1 until we receive them as zero, because
         // the last edge could come before the last bit on the timeline, all of
         // which will be 1's in that case.
-        ei->charbuf = 0xff;
+        charbuf = 0xff;
         
-      } else if (ei->inword && isTimer==false) {
+      } else if (inword && isTimer==false) {
         byte newbits;
         for (newbits=1; newbits<=9; newbits++) if (timediff < pgm_read_word_near(bittimes9600+newbits)) break;
-        if (newbits==10) ei->inword=0;
-        else while (newbits-- && ei->bitsreceived < 9) {
+        if (newbits==10) inword=0;
+        else while (newbits-- && bitsreceived < 9) {
           // if we got a rise, then we just finished getting some zeroes.
           // we already assume everything's a 1 until informed otherwise, which happens here.
-          if (ei->bitsreceived && isRise) ei->charbuf &= ~(1 << (ei->bitsreceived-1));              
-          ei->bitsreceived++;        
+          if (bitsreceived && isRise) charbuf &= ~(1 << (bitsreceived-1));              
+          bitsreceived++;        
         }
-      } else if (ei->inword && isTimer && timediff > 1200) {
+      } else if (inword && isTimer && timediff > 1200) {
         // if we got a timeout condition and last edge was in the middle of a word, then we accept the assumption
         // that the rest of the bits are 1's, and assume all the bits to be received.
-        ei->bitsreceived=9;
+        bitsreceived=9;
       }  
               
-      if (ei->bitsreceived >= 9) {
+      if (bitsreceived >= 9) {
         // got a full byte.  look at it on the protocol.
-        byte c = ei->charbuf;
+        byte c = charbuf;
 
-        if (ei->incard==0 && c==2) ei->incard++;
-        else if (ei->incard==1 && c==0x0a) ei->incard++;
-        else if (ei->incard==2 || ei->incard==3) ei->capbuf=0,ei->incard++;
-        else if (ei->incard < 4) {
-          ei->incard=0;
+        if (incard==0 && c==2) incard++;
+        else if (incard==1 && c==0x0a) incard++;
+        else if (incard==2 || incard==3) capbuf=0,incard++;
+        else if (incard < 4) {
+          incard=0;
           return;
-        } else if (ei->incard < 8) {
-          ei->capbuf = ei->capbuf * 256u;
-          ei->capbuf += c;
-          ei->incard++;
-        } else if (ei->incard==8) ei->incard++;
-        else if (ei->incard==9 && c==3) {
-          ei->capturedMessage=ei->capbuf;
-          ei->capturedBitCount=32;
-          ei->incard=0;    
+        } else if (incard < 8) {
+          capbuf = capbuf * 256u;
+          capbuf += c;
+          incard++;
+        } else if (incard==8) incard++;
+        else if (incard==9 && c==3) {
+          capturedMessage=capbuf;
+          capturedBitCount=32;
+          incard=0;    
         } else {
-          ei->incard=0;
+          incard=0;
         }
 
         // if we had a rise, we're out of word (stop bit).  if fall, we're starting a new word.
-        ei->inword = isFall ? 1 : 0;
-        ei->bitsreceived=0;
-        ei->charbuf=0xff;
+        inword = isFall ? 1 : 0;
+        bitsreceived=0;
+        charbuf=0xff;
       }
             
       
-    } else if (ei->protocol=='W' || ei->protocol=='0') {
+    } else if (protocol=='W' || protocol=='0') {
       // if we have a 0, then we are looking at the 0-pin of a two-pin Wiegand setup.
-      PulseCapture *wi = ei;
+      PulseCapture *wi = this;
       bool is0=false, is1=true;
-      if (ei->protocol=='0') is0=true,is1=false,wi=ei->next_pulsecapture_instance;
+      if (protocol=='0') is0=true,is1=false,wi=next_pulsecapture_instance;
       
       // On Wiegand, the signal is idle high.  We get bits when pin0 or pin1 falls.
       // As long as its fall isn't "late" (compared to earlier bits), it's good anytime.
@@ -455,6 +463,7 @@ void PulseCapture::_handle_irq(void *eev) {
       }  
     }
   }  
+  return next_pulsecapture_instance;
 }
 
 

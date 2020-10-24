@@ -107,12 +107,18 @@ public:
   
   uint8_t capturedBitCount=0;
   uint32_t capturedMessage=0;
+
+  void* _handle_irq(void *eev);
+  
+  
+  PulseCapture();
+  void init(byte pin, byte _protocol);
+  
+protected:
+  
+private:
   uint8_t inword=0;
   uint8_t protocol=0;      // 9=serial cardreader I=IR W=Wiegand1
-
-  void _handle_irq(void *eev);
-  PulseCapture *next_pulsecapture_instance=NULL;
-
   uint8_t *portaddr=0;
   uint8_t mask=0;
   uint8_t lastRead=0;
@@ -121,8 +127,22 @@ public:
   uint8_t incard=0;
   uint8_t charbuf=0;
   uint32_t capbuf=0;
-  uint16_t begin_status;
+  uint16_t begin_status=0;
+  PulseCapture *next_pulsecapture_instance=NULL;
 
 };
+
+class Wiegand : public PulseCapture {
+public:
+	Wiegand(byte pinD0, byte pinD1);
+	
+private:
+  PulseCapture d0_pulsecapture_instance;
+};
+
+
+
+
+
 
 #endif
