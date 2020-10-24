@@ -22,8 +22,9 @@ projects that include other code with high interrupt latency (such as WS28xxx LE
 * Create an instance of the class.
 * Call ```begin()```
 * No further action is needed for the class to receive incoming event messages.
-* Poll for incoming events using ```read()```.  ```read()``` always returns immediately, with a return value and bit count of 0 if there is nothing to return.
+* Poll for incoming events using ```read()```, which always returns immediately, with a return value of 0 and a bit count of 0 if there is no message received.
 
+#### Notes
 * An event is the arrival of a complete message (such as a complete IR command, or a complete RFID card swipe, or a complete PWM timing measurement).  You can also detect a received event without removing it from the buffer, by checking ```capturedBitCount``` for a non-zero value.
 * Each instance will only buffer one complete "message" event.  If a second event arrives before the first event is read, the first event is overwritten and discarded.  This design is intentional.
 
