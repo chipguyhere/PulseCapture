@@ -17,8 +17,10 @@ This library uses an enhanced Timer Input Capture hardware feature when your inp
 
 ## How to install:
 
+* Install Arduino IDE (for PC/Mac/Linux) as downloaded from arduino.cc if not already on your computer.
+* See that you have an Arduino sketchbook folder already created by default when you first started the Arduino IDE (typically a folder named Arduino in your "Documents" folder.  This folder should contain another automatically-created folder named "libraries" that you can create if it doesn't already exist)
 * Download ZIP file from GitHub
-* Unzip into (your Arduino sketchbook folder)/libraries/PulseCapture
+* Create a folder at (your Arduino sketchbook folder)/libraries/PulseCapture and unzip file here
 * (Re-)start Arduino IDE
 
 ## Basic usage:
