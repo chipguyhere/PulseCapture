@@ -27,7 +27,7 @@ This library uses an enhanced Timer Input Capture hardware feature when your inp
 #### Notes
 * An event is the arrival of a complete message (such as a complete IR command, or a complete RFID card swipe, or a complete PWM timing measurement).
 * You can detect a received event without removing it from the buffer by checking ```capturedBitCount``` for a non-zero value.
-* Each instance will only buffer one complete "message" event.  If a second event arrives before the first event is read, the first event is overwritten and discarded.  This design is intentional.
+* Each instance will only buffer one complete "message" event.  If a second event finishes arriving before the first event is read, the first event is overwritten and discarded.  This design is intentional.
 
 ### Infrared receiver:
 
