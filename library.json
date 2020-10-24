@@ -1,0 +1,20 @@
+{
+"name": "cgh_PulseCapture",
+"frameworks": "Arduino",
+"keywords": "chipguyhere, wiegand, RFID, infrared, pulse capture",
+"description": "hardware-assisted infrared, Wiegand(RFID), PWM, and serial receive for Arduino Uno/Nano/Mega",
+"repository": {
+    "type": "git",
+    "url": "https://github.com/chipguyhere/PulseCapture.git"
+  },
+"authors": [
+    {
+      "name": "chipguyhere",
+      "email": "chipguyhere@gmail.com"
+    }
+  ], 
+"version": "1.0.0",
+  "platforms": [
+    "atmelavr"
+  ]
+}
