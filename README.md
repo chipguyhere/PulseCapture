@@ -32,11 +32,38 @@ In your ```loop()```, you can poll for received IR messages as follows:
   byte receivedBitCount;
   unsigned long message =  IR_receiver.read(&receivedBitCount);
   if (receivedBitCount==32) {
+    Serial.print("IR received: ");
     Serial.println(message, HEX);
-  } else if (receivedBitCount==1) {
-    // key-held pulse is delivered as a series of single-bit message of "1"
-    // as long as the key remains held down
+  }
+  else if (receivedBitCount==1 && message==1) {
     Serial.println("(key held down)");    
+  }
+```
+
+### Wiegand (RFID) receiver:
+
+Wiegand is a popular protocol for RFID readers.  Most readers on the market will return messages of
+26 or 34 bits (which represent 24- and 32-bit ID numbers with parity bits).  This library removes the
+parity bits and only returns the 24- or 32-bit ID.
+
+Additionally, an RFID reader with a numeric keypad might report keypresses in the form of 4-bit messages.
+The messages will be the numbers 0 thru F (hex).
+
+Because there are two pins (D0 and D1), you'll declare two instances of PulseCapture.  They will
+detect and interact with each other.
+```
+  PulseCapture wiegand_pinD0(4, '0');  // Use protocol of '0' to capture D0
+  PulseCapture Wiegand(5, 'W');        // Use 'W' for pin D1
+```
+In your ```loop()```, only the instance connected to D1 will report events.
+
+```  
+  byte receivedBitCount;
+  unsigned long message =  Wiegand.read(&receivedBitCount);
+  if (receivedBitCount) {
+    Serial.print(receivedBitCount);
+    Serial.print(" bit message received: ");
+    Serial.println(message);
   }
 ```
 
