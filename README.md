@@ -15,6 +15,10 @@ This library uses an enhanced Timer Input Capture hardware feature when your inp
 * On Uno and Nano, pin 8
 * On Mega, pins 48 and 49.
 
+## How to install:
+
+* Download ZIP file from GitHub
+* Unzip into (your Arduino sketchbook folder)/libraries/PulseCapture
 
 ## Basic usage:
 ### General flow
