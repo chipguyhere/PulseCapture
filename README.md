@@ -16,3 +16,11 @@ Hardware input capture uses a 16-bit timer to timestamp the incoming pulses when
 on the microcontroller.  This is especially important when receiving servo PWM to prevent jitter.  It also allows reliable infrared control on
 projects that include other code with high interrupt latency (such as WS28xxx LED strips)
 
+## System resources impacted
+
+This library requires complete control of Timer1 in order to work.  Because of that, using PWM as follows will conflict with this library:
+
+* Pins 9 and 10 (Uno and Nano only)
+* Pins 11 and 12 (Mega only)
+* Pins 6,7,8 while capturing on pin 49 (Mega only)
+* Pins 44,45,46 while capturing on pin 48 (Mega only)
