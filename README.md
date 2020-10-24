@@ -4,7 +4,7 @@ PulseCapture is an interrupt-driven library for Arduino Uno/Nano/Mega that captu
 
 * Infrared (the most common NEC protocol)
 * Wiegand (two-wire protocol used in RFID readers)
-* Servo PWM with 0.5μs resolution)
+* Servo PWM with 0.5μs resolution
 
 On Uno and Nano, pulses can be captured on any digital or analog input (not just pins 2 and 3), as the library uses Pin Change Interrupts to
 capture pulses.  On Mega, this library supports capture only on these hardware-supported pins: 10, 11, 12, 13, 48, 49, 50, 51, 52, 53, and A8 thru A15.
@@ -49,13 +49,13 @@ parity bits and only returns the 24- or 32-bit ID.
 Additionally, an RFID reader with a numeric keypad might report keypresses in the form of 4-bit messages.
 The messages will be the numbers 0 thru F (hex).
 
-Because there are two pins (D0 and D1), you'll declare two instances of PulseCapture.  They will
-detect and interact with each other.
+Because there are two pins (Data0 and Data1), you'll declare two instances of PulseCapture.  They will
+detect and interact with each other as long as Data0 is declared first.
 ```
-  PulseCapture wiegand_pinD0(4, '0');  // Use protocol of '0' to capture D0
-  PulseCapture Wiegand(5, 'W');        // Use 'W' for pin D1
+  PulseCapture wiegand_data0(4, '0');  // Use protocol of '0' to capture Data0
+  PulseCapture Wiegand(5, 'W');        // Use 'W' for pin Data1
 ```
-In your ```loop()```, only the instance connected to D1 will report events.
+In your ```loop()```, only the instance connected to Data1 will report events.
 
 ```  
   byte receivedBitCount;
