@@ -122,3 +122,11 @@ The following timers get taken:
 
 This library also takes one of your Compare Match interrupts on your main system timer (Timer0 or TCA0), though I can't think of what existing libraries this might impact (the timer remains usable for PWM etc.)
 
+### Arduino Every limitation
+Arduino Every's "event routing" system has a minor limitation to be aware of.  Only two pins from the same "group" can have hardware timer capture enabled.  If using three hardware capture pins, make sure they are not all three in the same group, to avoid having the third pin fall back to pin change interrupt capture.
+* First group (D2, D7, D9, D10)
+* Second group (D4, A0, A1, A2, A3, A6, A7)
+* Third group (D3, D6, D8, D11, D12, D13, A4, A5)
+
+
+
