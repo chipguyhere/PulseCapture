@@ -6,10 +6,10 @@ that uses *hardware timer capture* to capture several types of pulsed digital si
 * Infrared remote-control signals
 * Wiegand (two-wire protocol used in RFID readers)
 * Servo PWM with sub-microsecond resolution
-* Soft Serial Rx
+* Hardware-assisted Soft Serial Rx
 
 *Hardware timer capture* is a feature of the AVR chips that offloads the time stamping of incoming pulses
-to the on-chip *timer* units.  Without this, other activities performed by your sketch cause delays between
+to the on-chip *timer* units.  Without this step, other activities performed by your sketch cause delays between
 receiving a signal and processing it, which interferes with reliability and quality.  Addressable LED
 strips are a popular culprit for adding disruptive delays to sketches.
 
