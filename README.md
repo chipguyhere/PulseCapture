@@ -44,7 +44,7 @@ This library uses an enhanced Timer Input Capture hardware feature when your inp
 * You can detect a received event without removing it from the buffer by checking ```capturedBitCount``` for a non-zero value.
 * Each instance will only buffer one complete "message" event.  If a second event finishes arriving before the first event is read, the first event is overwritten and discarded.  This design is intentional.
 
-### Infrared receiver:
+### Basic usage of Infrared receiver:
 
 ```
   chipguy_irReceiver(8);
@@ -69,6 +69,17 @@ In your ```loop()```, you can poll for received IR messages with the ```read()``
 
 The "key held down" is a special message in the IR protocol, returned by the class as a single bit message of 1.
 The class will not allow the "key held down" message to overwrite any other unread message in the receive buffer.
+
+### Wiegand (RFID) receiver:
+
+Wiegand is a popular two-wire protocol for RFID readers.  Receiving a message from a card reader is very similar
+to receiving one from an infrared receiver -- the message is a number up to 32 bits and simply shows up.
+[Details on Wiegand][docs/Wiegand.md]
+
+
+### Servo PWM receiver
+
+The Servo PWM receiver captures servo pulse width as a background task using hardware timer capture.
 
 
 ## System resources impacted
