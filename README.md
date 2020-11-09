@@ -111,8 +111,8 @@ This library requires complete control of some of your timers in order to work. 
 * Pins 11 and 12 (Mega only)
 * Pins 6,7,8 while capturing on pin 49 (Mega only)
 * Pins 44,45,46 while capturing on pin 48 (Mega only)
-* Pins (still looking them up) on Arduino Nano Every
-* Pins (still looking them up) on 32u4 including Leonardo and Micro
+* Pins 3 and 6 on Arduino Nano Every
+* Pins 5, 9, and 10 on 32u4 including Leonardo and Micro
 
 This library also takes one of your Compare Match interrupts on your main system timer (Timer0 or TCA0), though I can't think of what existing libraries this might impact (the timer remains usable for PWM etc.)
 
