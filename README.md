@@ -74,7 +74,7 @@ The class will not allow the "key held down" message to overwrite any other unre
 
 Wiegand is a popular two-wire protocol for RFID readers.  Receiving a message from a card reader is very similar
 to receiving one from an infrared receiver -- the message is a number up to 32 bits and simply shows up.
-[Details on Wiegand][docs/Wiegand.md]
+[Details](docs/Wiegand.md)
 
 
 ### Servo PWM receiver
