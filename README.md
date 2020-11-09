@@ -11,7 +11,7 @@ On Uno and Nano, you can use any digital or analog input.  The Pin Change Interr
 
 On Arduino Mega, these pins have hardware interrupt support and are the only ones supported by the library: 10, 11, 12, 13, 48, 49, 50, 51, 52, 53, and A8 thru A15.
 
-On Arduino Nano Every, all pins are supported for hardware timer capture.  You can have a maximum of 3 pins active on hardware capture, and the rest will fall back to pin change interrupt capture, which is also supported on all pins.
+On Arduino Nano Every, all pins are supported.
 
 On 32u4 including Leonardo and Micro, only these pins are supported: 4,8,9,10,11,13,MISO,SCK,MOSI (ICSP pins).
 
@@ -19,7 +19,7 @@ This library uses an enhanced Timer Input Capture hardware feature when your inp
 
 * On Uno and Nano, pin 8
 * On Mega, pins 48 and 49.
-* On Nano Every, all pins.
+* On Nano Every, all pins, up to 3 simultaneous.
 * On 32u4, pins 4 and 13.
 
 ## How to install:
@@ -113,6 +113,12 @@ This library requires complete control of some of your timers in order to work. 
 * Pins 44,45,46 while capturing on pin 48 (Mega only)
 * Pins 3 and 6 on Arduino Nano Every
 * Pins 5, 9, and 10 on 32u4 including Leonardo and Micro
+
+The following timers get taken:
+* Uno/Nano: Timer1
+* Mega: Timer4, Timer5
+* 32u4/Leonardo/Micro: Timer1, Timer3
+* Every: TCB0, TCB1, TCB2
 
 This library also takes one of your Compare Match interrupts on your main system timer (Timer0 or TCA0), though I can't think of what existing libraries this might impact (the timer remains usable for PWM etc.)
 
