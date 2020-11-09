@@ -1,15 +1,22 @@
 # PulseCapture
 
-PulseCapture is an interrupt-driven library for Arduino Uno/Nano/Mega that captures several types of pulsed digital signals:
+PulseCapture is an interrupt-driven library for AVR Arduino boards (Uno/Nano/Mega/Micro/Leonardo)
+that uses *hardware timer capture* to capture several types of pulsed digital signals:
 
-* Infrared (the most common NEC protocol)
+* Infrared remote-control signals
 * Wiegand (two-wire protocol used in RFID readers)
 * Servo PWM with sub-microsecond resolution
 * Soft Serial Rx
 
-On Uno and Nano, you can use any digital or analog input.  The Pin Change Interrupt is used for capture, which is hardware-supported on all pins.
+*Hardware timer capture* is a feature of the AVR chips that offloads the time stamping of incoming pulses
+to the on-chip *timer* units.  Without this, other activities performed by your sketch (such as driving
+addressable LED strips) cause delays between receiving a signal and processing it, which interferes
+with reliability and quality.
 
-On Arduino Mega, these pins have hardware interrupt support and are the only ones supported by the library: 10, 11, 12, 13, 48, 49, 50, 51, 52, 53, and A8 thru A15.
+## Supported models and pins
+On Arduino Uno and Nano, you can use any digital or analog input.  The Pin Change Interrupt is used for capture, which is hardware-supported on all pins.
+
+On Arduino Mega, only these pins are supported: 10, 11, 12, 13, 48, 49, 50, 51, 52, 53, and A8 thru A15.
 
 On Arduino Nano Every, all pins are supported.
 
