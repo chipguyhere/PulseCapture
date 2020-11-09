@@ -4,7 +4,7 @@ PulseCapture is an interrupt-driven library for Arduino Uno/Nano/Mega that captu
 
 * Infrared (the most common NEC protocol)
 * Wiegand (two-wire protocol used in RFID readers)
-* Servo PWM with 0.5μs resolution
+* Servo PWM with 0.5μs resolution (Arduino Nano Every: 0.125μs resolution)
 * Soft Serial Rx
 
 On Uno and Nano, you can use any digital or analog input.  The Pin Change Interrupt is used for capture, which is hardware-supported on all pins.
@@ -15,7 +15,7 @@ On Arduino Nano Every, all pins are supported.
 
 On 32u4 including Leonardo and Micro, only these pins are supported: 4,8,9,10,11,13,MISO,SCK,MOSI (ICSP pins).
 
-This library uses an enhanced Timer Input Capture hardware feature when your input is connected to the specific pin(s) that support it.  This is highly recommended for infrared and servo PWM input, especially on projects that have excessive interrupt latency elsewhere (such as those driving WS281xx LED strips).  Timer input capture provides an enhanced resolution of 0.5μs and eliminates servo jitter.
+This library uses an enhanced Timer Input Capture hardware feature when your input is connected to the specific pin(s) that support it.  This is highly recommended for infrared and servo PWM input, especially on projects that have excessive interrupt latency elsewhere (such as those driving WS281xx LED strips).  Servo resolution on non-enhanced pins is limited to 4ms and subject to potential jitter from other onboard interrupts.
 
 * On Uno and Nano, pin 8
 * On Mega, pins 48 and 49.
