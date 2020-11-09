@@ -5,15 +5,22 @@ PulseCapture is an interrupt-driven library for Arduino Uno/Nano/Mega that captu
 * Infrared (the most common NEC protocol)
 * Wiegand (two-wire protocol used in RFID readers)
 * Servo PWM with 0.5μs resolution
+* Soft Serial Rx
 
 On Uno and Nano, you can use any digital or analog input.  The Pin Change Interrupt is used for capture, which is hardware-supported on all pins.
 
 On Arduino Mega, these pins have hardware interrupt support and are the only ones supported by the library: 10, 11, 12, 13, 48, 49, 50, 51, 52, 53, and A8 thru A15.
 
+On Arduino Nano Every, all pins are supported for hardware timer capture.  You can have a maximum of 3 pins active on hardware capture, and the rest will fall back to pin change interrupt capture, which is also supported on all pins.
+
+On 32u4 including Leonardo and Micro, only these pins are supported: 4,8,9,10,11,13,MISO,SCK,MOSI (ICSP pins).
+
 This library uses an enhanced Timer Input Capture hardware feature when your input is connected to the specific pin(s) that support it.  This is highly recommended for infrared and servo PWM input, especially on projects that have excessive interrupt latency elsewhere (such as those driving WS281xx LED strips).  Timer input capture provides an enhanced resolution of 0.5μs and eliminates servo jitter.
 
 * On Uno and Nano, pin 8
 * On Mega, pins 48 and 49.
+* On Nano Every, all pins.
+* On 32u4, pins 4 and 13.
 
 ## How to install:
 
@@ -39,9 +46,8 @@ This library uses an enhanced Timer Input Capture hardware feature when your inp
 
 ### Infrared receiver:
 
-Declare an instance of PulseCapture, providing the desired pin number, and 'I' as the protocol identifier for infrared.
 ```
-  PulseCapture IR_receiver(8, 'I');
+  chipguy_irReceiver(8);
 ```
 In your ```setup()```:
 ```
@@ -50,8 +56,8 @@ In your ```setup()```:
 In your ```loop()```, you can poll for received IR messages with the ```read()``` function.  A non-zero return value indicates a message received.
 
 ```  
-  byte receivedBitCount;
-  unsigned long message =  IR_receiver.read(&receivedBitCount);
+  int receivedBitCount;
+  unsigned long message =  IR_receiver.read(receivedBitCount);
   if (receivedBitCount==32) {
     Serial.print("IR received: ");
     Serial.println(message, HEX);
@@ -83,13 +89,13 @@ The PulseCapture library provides a derived Wiegand class to simplify the creati
 simultaneous pins.  Create it as follows:
 
 ```
-  Wiegand wiegand_receiver(4, 5);   // Read Wiegand protocol on pins 4 (Data0) and 5 (Data1)
+  chipguy_WiegandRx wiegand(4, 5);   // Read Wiegand protocol on pins 4 (Data0) and 5 (Data1)
 ```
 In your ```loop()```, receivedBitCount will indicate 4, 24, or 32 when a message is received, or 0 if none.
 
 ```  
-  byte receivedBitCount;
-  unsigned long message =  Wiegand.read(&receivedBitCount);
+  int receivedBitCount;
+  unsigned long message =  wiegand.read(receivedBitCount);
   if (receivedBitCount) {
     Serial.print(receivedBitCount);
     Serial.print("-bit message received: ");
@@ -99,9 +105,14 @@ In your ```loop()```, receivedBitCount will indicate 4, 24, or 32 when a message
 
 ## System resources impacted
 
-This library requires complete control of Timer1 in order to work.  Because of that, using PWM as follows will conflict with this library:
+This library requires complete control of some of your timers in order to work.  Because of that, using PWM as follows will conflict with this library:
 
 * Pins 9 and 10 (Uno and Nano only)
 * Pins 11 and 12 (Mega only)
 * Pins 6,7,8 while capturing on pin 49 (Mega only)
 * Pins 44,45,46 while capturing on pin 48 (Mega only)
+* Pins (still looking them up) on Arduino Nano Every
+* Pins (still looking them up) on 32u4 including Leonardo and Micro
+
+This library also takes one of your Compare Match interrupts on your main system timer (Timer0 or TCA0), though I can't think of what existing libraries this might impact (the timer remains usable for PWM etc.)
+
