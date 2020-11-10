@@ -17,6 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <Arduino.h>
 #include "chipguy_pulsecapture.h"
+#include "chipguy_pulsecapture_privates.h"
+
 
 #ifdef ARDUINO_AVR_NANO_EVERY
 
@@ -62,86 +64,95 @@ TCB_t *mainTimer=NULL;
 ISR(TCA0_CMP1_vect) {
   TCA0.SINGLE.INTFLAGS |= 0x20; // acknowledge the interrupt
   if (mainTimer) {  
-		uint16_t cntB2 = mainTimer->CNT;
-		if (cntB2 < ovfwatch) {
-			ovfcount++;
-			ovfwatch=cntB2;
-		} else {
-			ovfwatch=cntB2;
-		}
-		cgh_pulsecapture_add_tick_to_queue(ovfcount*65536 + cntB2);  
-		
-	}
-	
-	// TODO: add timer tick to queue outside of overflow.
-	// tick always. 
+    uint16_t cnt = mainTimer->CNT;
+    if (cnt < ovfwatch) {
+      ovfcount++;
+      ovfwatch=cnt;
+    } else {
+      ovfwatch=cnt;
+    }
+    cgh_pulsecapture_add_tick_to_queue(ovfcount*65536 + cnt);  
+    
+  } else {
+    cgh_pulsecapture_add_tick_to_queue(micros());    
+  }
+  
+  // TODO: add timer tick to queue outside of overflow.
+  // tick always. 
 }
 
 
 // Get a 32 bit timestamp from a 16 bit time, inferring the
 // top 32 bits via ovfcount and ovfwatch
 uint32_t cgh_pulse_get_adjusted_timestamp(uint16_t time16) {
-	uint16_t ovfcount_copy = ovfcount;
-	if (time16 >= 0xc000 && ovfwatch < 0x4000) ovfcount_copy--;
-	if (time16 < 0x4000 && ovfwatch >= 0xc000) ovfcount_copy++;
-	uint32_t timestamp = ovfcount_copy * 65536UL + time16;
-	return timestamp;
+  uint16_t ovfcount_copy = ovfcount;
+  if (time16 >= 0xc000 && ovfwatch < 0x4000) ovfcount_copy--;
+  if (time16 < 0x4000 && ovfwatch >= 0xc000) ovfcount_copy++;
+  uint32_t timestamp = ovfcount_copy * 65536UL + time16;
+  return timestamp;
 }
 
 void isr_tcbx(TCB_t &TCBx, char portid) {
-	uint32_t timestamp = cgh_pulse_get_adjusted_timestamp(TCBx.CCMP);
-	byte edge = 1; // rising
-	if (TCBx.EVCTRL & 0x10) edge=0;
-	TCBx.EVCTRL ^= 0x10;
-	cgh_pulsecapture_add_event_to_queue(edge, portid, timestamp);
+	uint32_t timestamp;
+	if ((TCBx.CTRLA & 0x06)==TCB_CLKSEL_CLKDIV2_gc) timestamp = TCBx.CCMP;
+	else timestamp = cgh_pulse_get_adjusted_timestamp(TCBx.CCMP);
+  byte edge = 1; // rising
+  if (TCBx.EVCTRL & 0x10) edge=0;
+  TCBx.EVCTRL ^= 0x10;
+  cgh_pulsecapture_add_event_to_queue(edge, portid, timestamp);
 }
 
 
 // ISR for when we're using traditional attachedInterrupt and no hardware capture.
 void attachedISR(void *param) {
-	uint32_t timestamp;
-	if (mainTimer) timestamp = cgh_pulse_get_adjusted_timestamp(mainTimer->CNT);
-	else timestamp=micros();
-	PulseCapture *pc = (PulseCapture*)param;
-	//Serial.print(pc->protocol);
-	byte pinValue = digitalRead(pc->pin)==HIGH ? 1 : 0;
-	cgh_pulsecapture_add_event_to_queue(pinValue, pc->pin, timestamp);
+  uint32_t timestamp;
+  if (mainTimer) timestamp = cgh_pulse_get_adjusted_timestamp(mainTimer->CNT);
+  else timestamp=micros();
+  PulseCapture *pc = (PulseCapture*)param;
+  //Serial.print(pc->protocol);
+  byte pinValue = digitalRead(pc->pin)==HIGH ? 1 : 0;
+  cgh_pulsecapture_add_event_to_queue(pinValue, pc->pin, timestamp);
 }
 
 void cgh_syncClocks(bool sync0, bool sync1, bool sync2, bool sync3) {
-	// assume caller has noInterrupts already called
+  // assume caller has noInterrupts already called
 
-		// Set up things that all instances of class will use.
-		// Goal: sync TCA0 and TCB2.
-		// When achieved, they'll count in sync, except, TCA0 goes to 0xFF and TCB2 goes to 0xFFFF
-		
-		// turn on sync update (restart this timer in sync with TCA0's next restart)
-		// turn on clock select of system prescaler (same as TCA0 so they'll count in sync, just we're 16 bits)
-		// turn on enable timer
-		// TCA0 = 250KHz and we're matching it.
+    // Set up things that all instances of class will use.
+    // Goal: sync TCA0 and TCB2.
+    // When achieved, they'll count in sync, except, TCA0 goes to 0xFF and TCB2 goes to 0xFFFF
+    
+    // turn on sync update (restart this timer in sync with TCA0's next restart)
+    // turn on clock select of system prescaler (same as TCA0 so they'll count in sync, just we're 16 bits)
+    // turn on enable timer
+    // TCA0 = 250KHz and we're matching it.
 
-	if (sync0) TCB0.CTRLA = TCB_SYNCUPD_bm + TCB_CLKSEL_CLKTCA_gc + TCB_ENABLE_bm;
-	if (sync1) TCB1.CTRLA = TCB_SYNCUPD_bm + TCB_CLKSEL_CLKTCA_gc + TCB_ENABLE_bm;
-	if (sync2) TCB2.CTRLA = TCB_SYNCUPD_bm + TCB_CLKSEL_CLKTCA_gc + TCB_ENABLE_bm;
-	if (sync3) TCB3.CTRLA = TCB_SYNCUPD_bm + TCB_CLKSEL_CLKTCA_gc + TCB_ENABLE_bm;
+  if (sync0) TCB0.CTRLA = TCB_SYNCUPD_bm + TCB_CLKSEL_CLKTCA_gc + TCB_ENABLE_bm;
+  if (sync1) TCB1.CTRLA = TCB_SYNCUPD_bm + TCB_CLKSEL_CLKTCA_gc + TCB_ENABLE_bm;
+  if (sync2) TCB2.CTRLA = TCB_SYNCUPD_bm + TCB_CLKSEL_CLKTCA_gc + TCB_ENABLE_bm;
+  if (sync3) TCB3.CTRLA = TCB_SYNCUPD_bm + TCB_CLKSEL_CLKTCA_gc + TCB_ENABLE_bm;
 
-	// wait for TCA0 count to roll over, after which, the clocks are in sync
-	uint16_t lastTCA0 = TCA0.SINGLE.CNT;
-	while (lastTCA0 < TCA0.SINGLE.CNT) lastTCA0 = TCA0.SINGLE.CNT;
-	
-	// now it's in sync.  turn off SYNCUPD
-	if (sync0) TCB0.CTRLA &= ~TCB_SYNCUPD_bm, mainTimer=&TCB0;
-	if (sync1) TCB1.CTRLA &= ~TCB_SYNCUPD_bm, mainTimer=&TCB1;
-	if (sync2) TCB2.CTRLA &= ~TCB_SYNCUPD_bm, mainTimer=&TCB2;
-	if (sync3) TCB3.CTRLA &= ~TCB_SYNCUPD_bm, mainTimer=&TCB3;
+  // wait for TCA0 count to roll over, after which, the clocks are in sync
+  uint16_t lastTCA0 = TCA0.SINGLE.CNT;
+  while (lastTCA0 < TCA0.SINGLE.CNT) lastTCA0 = TCA0.SINGLE.CNT;
+  
+  // now it's in sync.  turn off SYNCUPD
+  mainTimer=0;
+  if (sync0) TCB0.CTRLA &= ~TCB_SYNCUPD_bm, mainTimer=&TCB0;
+  if (sync1) TCB1.CTRLA &= ~TCB_SYNCUPD_bm, mainTimer=&TCB1;
+  if (sync2) TCB2.CTRLA &= ~TCB_SYNCUPD_bm, mainTimer=&TCB2;
+  if (sync3) TCB3.CTRLA &= ~TCB_SYNCUPD_bm, mainTimer=&TCB3;
+	if (mainTimer==0) main_timer_is_micros=true;
+  
 }
 
 
 int PulseCapture::begin(void) {
-	// Interrupts need to be off when accessing 16-bit registers
+	int rv=0;
+	
+  // Interrupts need to be off when accessing 16-bit registers
   pinMode(pin, INPUT_PULLUP);
-	portid = 'A' + digitalPinToPort(pin); 
-	mask = digitalPinToBitMask(pin);  
+  portid = 'A' + digitalPinToPort(pin); 
+  mask = digitalPinToBitMask(pin);  
 
   noInterrupts();
 
@@ -149,90 +160,107 @@ int PulseCapture::begin(void) {
   if (pulsecapture_began==false) {
     pulsecapture_began=true;
 
-		cgh_syncClocks(timerAvailable[0], timerAvailable[1], timerAvailable[2], timerAvailable[3]);
+    cgh_syncClocks(timerAvailable[0], timerAvailable[1], timerAvailable[2], timerAvailable[3]);
 
 
+    
+    // enable TCA compare interrupt
+    TCA0.SINGLE.INTCTRL |= TCA_SINGLE_CMP1EN_bm;
+
+  }
+  
+
+  byte pos = digital_pin_to_bit_position[pin];
+  
+  // can we enable hardware capture?
+  // TODO: avoid looking for hardware capture if we are trying to avoid using it.
+  
+
+  byte selectedChannel=0xff;
+  // CHANNELx needs to be set between 0x40 and 0x4F depending on
+  // which pin we'll be capturing from.
+  byte chanx = pos + 0x40;
+  
+  byte selectedTimer = 0xff;
+    
+  if (timerAvailable[3] && EVSYS.USERTCB3==0) selectedTimer=3;
+  else if (timerAvailable[2] && EVSYS.USERTCB2==0) selectedTimer=2;
+  else if (timerAvailable[1] && EVSYS.USERTCB1==0) selectedTimer=1;
+  else if (timerAvailable[0] && EVSYS.USERTCB0==0) selectedTimer=0;
+  
+  // Avoid taking timers for Wiegand protocol because they're not useful.
+  // Instead we'll attachInterrupt and filter for falls.
+  if (protocol=='W' || protocol=='0') selectedTimer=0xff;
+
+  if (selectedTimer != 0xff){
+    if (portid=='B' || portid=='D' || portid=='F') chanx += 8;
+    if (portid=='A' || portid=='B') {
+      if (EVSYS.CHANNEL0==0) selectedChannel=0,EVSYS.CHANNEL0=chanx;
+      else if (EVSYS.CHANNEL1==0) selectedChannel=1,EVSYS.CHANNEL1=chanx;
+    } else if (portid=='C' || portid=='D') {
+        if (EVSYS.CHANNEL2==0) selectedChannel=2,EVSYS.CHANNEL2=chanx;
+        else if (EVSYS.CHANNEL3==0) selectedChannel=3,EVSYS.CHANNEL3=chanx;
+    } else if (portid=='E' || portid=='F') {
+        if (EVSYS.CHANNEL4==0) selectedChannel=4,EVSYS.CHANNEL4=chanx;
+        else if (EVSYS.CHANNEL5==0) selectedChannel=5,EVSYS.CHANNEL5=chanx;
+    }
+    // did we find an available channel?
+    // if so, route it to TCB2.  (the +1 is required per the datasheet bc 0=disabled)
+    if (selectedChannel != 0xff) {
+    	rv=3;
+      portid = '0' + selectedTimer;
+      lastRead = mask = 1;
+      selectedChannel++;
+      TCB_t *TCBx = &TCB0;
+      switch (selectedTimer) {
+        case 0: EVSYS.USERTCB0 = selectedChannel; break;
+        case 1: EVSYS.USERTCB1 = selectedChannel; TCBx = &TCB1; break;
+        case 2: EVSYS.USERTCB2 = selectedChannel; TCBx = &TCB2; break;
+        case 3: EVSYS.USERTCB3 = selectedChannel; TCBx = &TCB3; break;
+      }
 		
-		// enable TCA compare interrupt
-		TCA0.SINGLE.INTCTRL |= TCA_SINGLE_CMP1EN_bm;
+			// set timer counter mode to capture event  
+			TCBx->CTRLB = TCB_CNTMODE_CAPT_gc;
 
-	}
+			// turn on "catch a falling edge" (otherwise catches a rising edge)
+			// turn on event input enable.
+			TCBx->EVCTRL = TCB_EDGE_bm + TCB_CAPTEI_bm;
 	
-
-	byte pos = digital_pin_to_bit_position[pin];
-	
-	// can we enable hardware capture?
-	// TODO: avoid looking for hardware capture if we are trying to avoid using it.
-	
-
-	byte selectedChannel=0xff;
-	// CHANNELx needs to be set between 0x40 and 0x4F depending on
-	// which pin we'll be capturing from.
-	byte chanx = pos + 0x40;
-	
-	byte selectedTimer = 0xff;
+			// turn on the interrupt
+			TCBx->INTCTRL=TCB_CAPT_bm;
 		
-	if (timerAvailable[3] && EVSYS.USERTCB3==0) selectedTimer=3;
-	else if (timerAvailable[2] && EVSYS.USERTCB2==0) selectedTimer=2;
-	else if (timerAvailable[1] && EVSYS.USERTCB1==0) selectedTimer=1;
-	else if (timerAvailable[0] && EVSYS.USERTCB0==0) selectedTimer=0;
-	
-	// Avoid taking timers for Wiegand protocol because they're not useful.
-	// Instead we'll attachInterrupt and filter for falls.
-	if (protocol=='W' || protocol=='0') selectedTimer=0xff;
-
-	if (selectedTimer != 0xff){
-		if (portid=='B' || portid=='D' || portid=='F') chanx += 8;
-		if (portid=='A' || portid=='B') {
-			if (EVSYS.CHANNEL0==0) selectedChannel=0,EVSYS.CHANNEL0=chanx;
-			else if (EVSYS.CHANNEL1==0) selectedChannel=1,EVSYS.CHANNEL1=chanx;
-		} else if (portid=='C' || portid=='D') {
-				if (EVSYS.CHANNEL2==0) selectedChannel=2,EVSYS.CHANNEL2=chanx;
-				else if (EVSYS.CHANNEL3==0) selectedChannel=3,EVSYS.CHANNEL3=chanx;
-		} else if (portid=='E' || portid=='F') {
-				if (EVSYS.CHANNEL4==0) selectedChannel=4,EVSYS.CHANNEL4=chanx;
-				else if (EVSYS.CHANNEL5==0) selectedChannel=5,EVSYS.CHANNEL5=chanx;
-		}
-		// did we find an available channel?
-		// if so, route it to TCB2.  (the +1 is required per the datasheet bc 0=disabled)
-		if (selectedChannel != 0xff) {
-			portid = '0' + selectedTimer;
-			lastRead = mask = 1;
-			selectedChannel++;
-			TCB_t *TCBx = &TCB0;
-			switch (selectedTimer) {
-				case 0: EVSYS.USERTCB0 = selectedChannel; break;
-				case 1: EVSYS.USERTCB1 = selectedChannel; TCBx = &TCB1; break;
-				case 2: EVSYS.USERTCB2 = selectedChannel; TCBx = &TCB2; break;
-				case 3: EVSYS.USERTCB3 = selectedChannel; TCBx = &TCB3; break;
+			// if it's for a servo, let's pull it from available and upclock it to 8MHz
+			if (protocol=='P') {
+				timerAvailable[selectedTimer]=false;
+				TCBx->CTRLA = TCB_CLKSEL_CLKDIV2_gc + TCB_ENABLE_bm;
+				//TCBx->CTRLB = TCB_CNTMODE_PW_gc;				
+				clockrate=22;      				
+				mainTimer=0;
+				if (timerAvailable[0]) mainTimer=&TCB0;
+				if (timerAvailable[1]) mainTimer=&TCB1;
+				if (timerAvailable[2]) mainTimer=&TCB2;
+				if (timerAvailable[3]) mainTimer=&TCB3;
+				if (mainTimer==0) main_timer_is_micros=true;
 			}
-		// set timer counter mode to capture event  
-		TCBx->CTRLB = TCB_CNTMODE_CAPT_gc;
-
-		// turn on "catch a falling edge" (otherwise catches a rising edge)
-		// turn on event input enable.
-		TCBx->EVCTRL = TCB_EDGE_bm + TCB_CAPTEI_bm;
-	
-		// turn on the interrupt
-		TCBx->INTCTRL=TCB_CAPT_bm;			
 		}
-	}
-	
-	if (selectedChannel==0xff) {
-		// We were not able to set up hardware capture.
-		// Set up a normal pin change detection through attachInterrupt.
-		attachInterruptParam(digitalPinToInterrupt(pin), attachedISR, CHANGE, this);
-		mask = 1;
-		lastRead = digitalRead(pin)==HIGH ? mask : 0;
-		portid = pin;
-	}
+  }
+  
+  if (selectedChannel==0xff) {
+    // We were not able to set up hardware capture.
+    // Set up a normal pin change detection through attachInterrupt.
+    attachInterruptParam(digitalPinToInterrupt(pin), attachedISR, CHANGE, this);
+    mask = 1;
+    lastRead = digitalRead(pin)==HIGH ? mask : 0;
+    portid = pin;
+    rv=1;
+  }
 
 
-	
-	
-	interrupts();
-	
-	
+  
+  
+  interrupts();
+  return rv;
+  
 }
 
 

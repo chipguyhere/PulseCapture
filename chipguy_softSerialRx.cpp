@@ -17,6 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <Arduino.h>
 #include "chipguy_PulseCapture.h"
+#include "chipguy_pulsecapture_privates.h"
+
 
 
 chipguy_softSerialRx::chipguy_softSerialRx(byte _pin, uint32_t _baud) {
@@ -31,7 +33,7 @@ chipguy_softSerialRx::chipguy_softSerialRx(byte _pin, uint32_t _baud) {
 }
 
 
-void chipguy_softSerialRx::_handle_edge(char edgeKind, uint32_t rcvtime, uint32_t timediff32, uint16_t timediff) {
+void chipguy_softSerialRx::_handle_edge(char edgeKind, uint32_t timediff32, uint16_t timediff) {
 
 
 

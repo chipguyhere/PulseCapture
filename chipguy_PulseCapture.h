@@ -113,12 +113,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #endif
 
 
+// Base class for all PulseCapture classes
 // Represents one protocol listener that turns a stream of timestamped edges into captured message.
 class PulseCapture {
 public:
 
+  PulseCapture();
   PulseCapture(byte pin, byte _protocol);
+  
+  // return values of begin():
+  //  3 : active using hardware timer capture 
+  //  2 : active using pin change interrupts
+  //  1 : active using classic Arduino attachInterrupt/millis/micros
+  // -1 : pin not supported, nothing active
   int begin(void);
+  void init(byte _pin, byte _protocol);
 
   // Reads the last message if any, optionally returning the count of bits in the message.
   uint32_t read();
@@ -128,13 +137,7 @@ public:
   uint32_t capturedMessage=0;
 
   void* _handle_irq(void *eev); 
-  virtual void _handle_edge(char edgeKind, uint32_t rcvtime, uint32_t timediff32, uint16_t timediff);
-  
-  
-  
-  PulseCapture();
-  void init(byte _pin, byte _protocol);
-  
+  virtual void _handle_edge(char edgeKind, uint32_t timediff32, uint16_t timediff);    
   uint8_t pin=0;
   uint8_t inword=0;
   uint8_t protocol=0;      // 9=serial cardreader I=IR W=Wiegand1
@@ -143,24 +146,22 @@ public:
   uint8_t lastRead=0;
   uint32_t lastTimestamp=0;
   uint8_t bitsreceived=0;
-  uint32_t capbuf=0;  
+  uint32_t capbuf=0;
+  uint8_t clockrate=0;  
   PulseCapture *next_pulsecapture_instance=NULL;
 
 };
-
-extern bool pulsecapture_began;
-extern volatile PulseCapture *first_pulsecapture_instance;
-extern volatile uint16_t ovfcount;
 
 
 class chipguy_irReceiver : public PulseCapture {
 public:
 	chipguy_irReceiver(byte _pin);
 
-	void _handle_edge(char edgeKind, uint32_t rcvtime, uint32_t timediff32, uint16_t timediff);	
+	void _handle_edge(char edgeKind, uint32_t timediff32, uint16_t timediff);	
 private:
 
 	uint32_t lastMessageTimestamp=0;
+	uint32_t sumdiffs=0;
 
 };
 
@@ -174,7 +175,7 @@ public:
 	byte receive_tail=0;
 	byte receiveBuffer[32];
 	
-	void _handle_edge(char edgeKind, uint32_t rcvtime, uint32_t timediff32, uint16_t timediff);	
+	void _handle_edge(char edgeKind, uint32_t timediff32, uint16_t timediff);	
 	int read(void);
 
 private:	
@@ -187,7 +188,7 @@ private:
 class chipguy_servoPwmRx : public PulseCapture {
 public:
 	chipguy_servoPwmRx(byte pin);
-	void _handle_edge(char edgeKind, uint32_t rcvtime, uint32_t timediff32, uint16_t timediff);	
+	void _handle_edge(char edgeKind, uint32_t timediff32, uint16_t timediff);	
 	
 };
 
@@ -195,7 +196,7 @@ public:
 class chipguy_wiegand_helper : public PulseCapture {
 public:
 	chipguy_wiegand_helper();
-	void _handle_edge(char edgeKind, uint32_t rcvtime, uint32_t timediff32, uint16_t timediff);	
+	void _handle_edge(char edgeKind, uint32_t timediff32, uint16_t timediff);	
 	
 	
 	PulseCapture* d1instance;
@@ -205,21 +206,12 @@ public:
 class chipguy_WiegandRx : public PulseCapture {
 public:
 	chipguy_WiegandRx(byte pinD0, byte pinD1);
-	void _handle_edge(char edgeKind, uint32_t rcvtime, uint32_t timediff32, uint16_t timediff);	
+	void _handle_edge(char edgeKind, uint32_t timediff32, uint16_t timediff);	
   int begin(void);
 	
 private:
   chipguy_wiegand_helper helper;
 };
-
-
-
-
-
-
-
-void cgh_pulsecapture_add_tick_to_queue(uint32_t timestamp);
-void cgh_pulsecapture_add_event_to_queue(uint8_t portRead, char portid, uint32_t timestamp);
 
 
 

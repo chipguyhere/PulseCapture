@@ -15,27 +15,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include <Arduino.h>
-#include "chipguy_PulseCapture.h"
-#include "chipguy_pulsecapture_privates.h"
+
+extern bool pulsecapture_began;
+extern volatile PulseCapture *first_pulsecapture_instance;
+extern volatile uint16_t ovfcount;
+extern bool main_timer_is_micros;
 
 
-
-chipguy_servoPwmRx::chipguy_servoPwmRx(byte _pin) {
-	init(_pin, 'P');
-	clockrate=20;
-	
-}
-
-void chipguy_servoPwmRx::_handle_edge(char edgeKind, uint32_t timediff32, uint16_t timediff) {
+void cgh_pulsecapture_add_tick_to_queue(uint32_t timestamp);
+void cgh_pulsecapture_add_event_to_queue(uint8_t portRead, char portid, uint32_t timestamp);
 
 
-
-	// CAPTURE FOR SERVO PWM
-	// it's simple: on falls, if it looks like a valid PWM pulse, the message is its length.
-	// Valid pulses are nominally 1000-2000us, but overshoots are allowed.
-	if (edgeKind=='F' && timediff32 > 500000 && timediff32 < 2500000) {
-		capturedMessage = timediff32;
-	}	
-
-}

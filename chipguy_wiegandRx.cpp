@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <Arduino.h>
 #include "chipguy_PulseCapture.h"
+#include "chipguy_pulsecapture_privates.h"
 
 
 
@@ -29,8 +30,11 @@ chipguy_WiegandRx::chipguy_WiegandRx(byte pinD0, byte pinD1) {
 
 int chipguy_WiegandRx::begin(void) {
 	// ensure begin gets called on both
-	PulseCapture::begin();
-	helper.begin();
+	int rv = PulseCapture::begin();
+	int rv2 = helper.begin();
+	if (rv==rv2) return rv;
+	if (rv==-1 || rv2==-1) return -1;
+	return (rv < rv2) ? rv : rv2;
 }
 
 
@@ -40,14 +44,14 @@ chipguy_wiegand_helper::chipguy_wiegand_helper() {
 
 
 
-void chipguy_wiegand_helper::_handle_edge(char edgeKind, uint32_t rcvtime, uint32_t timediff32, uint16_t timediff) {
+void chipguy_wiegand_helper::_handle_edge(char edgeKind, uint32_t timediff32, uint16_t timediff) {
 
 	// send it to the d1 instance for handling, adding a bit flag to indicate
 	// that it has been sent over.
-	d1instance->_handle_edge(edgeKind + 0x80, rcvtime, timediff32, timediff);
+	d1instance->_handle_edge(edgeKind + 0x80, timediff32, timediff);
 }
 
-void chipguy_WiegandRx::_handle_edge(char edgeKind, uint32_t rcvtime, uint32_t timediff32, uint16_t timediff) {
+void chipguy_WiegandRx::_handle_edge(char edgeKind, uint32_t timediff32, uint16_t timediff) {
 
 	// sync the time stamps to the later of the two pins.
 	if (((long)lastTimestamp - (long)helper.lastTimestamp) > 0) 	

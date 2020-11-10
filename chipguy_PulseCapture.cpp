@@ -16,12 +16,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// Hardware dependency: this module takes over Timer1 on ATmega328p, and also Timer4,5 on ATmega2560
-
 
 
 #include <Arduino.h>
 #include "chipguy_pulsecapture.h"
+#include "chipguy_pulsecapture_privates.h"
+
 
 // Pins Supported:
 // Uno/Nano: all digital pins, all analog pins thru A5
@@ -44,6 +44,7 @@ struct edgeevent {
 }; 
 
 bool pulsecapture_began=false;
+bool main_timer_is_micros=false;
 volatile PulseCapture *first_pulsecapture_instance=NULL;
 
 // edgeEventCount must be a power of two.
@@ -59,8 +60,8 @@ void handle_irq_queue();
 
 
 void debugEdgeEvents() {
+	return;
 
-/*
 	static uint8_t debugTail = 0;
 	
 	while (debugTail != edgeEventHead) {
@@ -79,8 +80,8 @@ void debugEdgeEvents() {
 	// Before uncommenting this,
 	// make sure this is the only caller to handle_irq_queue
 	// (comment out other path(s))
-	handle_irq_queue();
-*/
+	//handle_irq_queue();
+
 
 }
 
@@ -132,6 +133,7 @@ uint32_t PulseCapture::read() {
 
 
 void cgh_pulsecapture_add_tick_to_queue(uint32_t timestamp) {
+/*
   if (edgeEventHead != edgeEventTail) {
     // if the latest entry is a timer tick that has not yet been seen,
     // overwrite it.  "Not been seen" means the circular buffer must
@@ -142,8 +144,9 @@ void cgh_pulsecapture_add_tick_to_queue(uint32_t timestamp) {
         edgeEventHead = (edgeEventHead-1) & (edgeEventCount-1);         
       }
     }    
-  }  
-  cgh_pulsecapture_add_event_to_queue(0, 'T', timestamp);
+  }*/
+  // add ticks only while the queue is empty
+  if (edgeEventHead == edgeEventTail) cgh_pulsecapture_add_event_to_queue(0, 'T', timestamp);
   
 }
 
@@ -165,6 +168,7 @@ void handle_irq_queue() {
   if (in_ISRX) return;
   in_ISRX=1;  
   interrupts();
+  byte processed=0;
 
   while (edgeEventHead != edgeEventTail) {
     byte newtail = (edgeEventTail + 1) & (edgeEventCount-1);
@@ -174,6 +178,7 @@ void handle_irq_queue() {
       ei = (PulseCapture*)(ei->_handle_irq(ee));  
     }
     edgeEventTail = newtail; 
+    if (++processed==32) break;
   }
 
   in_ISRX=0;
@@ -181,7 +186,7 @@ void handle_irq_queue() {
 }
 
 
-void PulseCapture::_handle_edge(char edgeKind, uint32_t rcvtime, uint32_t timediff32, uint16_t timediff) {
+void PulseCapture::_handle_edge(char edgeKind, uint32_t timediff32, uint16_t timediff) {
 
 	
 }
@@ -212,11 +217,18 @@ void* PulseCapture::_handle_irq(void *eev) {
     uint32_t rcvtime = ee->timer;
 		long timediff32 = rcvtime - lastTimestamp;
 		if (edgeKind != 'T') lastTimestamp = rcvtime;		
-		timediff32 = timediff32 * 4; // ticks are in units of 4us for all supported devices
+		switch (clockrate) {
+			case 0: if (main_timer_is_micros) break; // micros is already in us
+					timediff32 = timediff32 * 4; break; // ticks are in units of 4us	
+			case 20: timediff32 = timediff32 * 4000; break; // ticks are 4us, want ns
+			case 21: timediff32 = timediff32 * 500; break; // ticks are 0.5us, want ns
+			case 22: while (timediff32 < 0) timediff32 += 65536;
+				timediff32 = timediff32 * 125; break; // ticks are 125ns and not a diff
+		}
 		uint16_t timediff = (uint32_t)timediff32;
 		if (timediff32 > 65535) timediff=65535;
 	
-	  _handle_edge(edgeKind,rcvtime, timediff32, timediff);
+	  _handle_edge(edgeKind,timediff32, timediff);
 	  
     /*
     Serial.print("inword now ");
