@@ -40,7 +40,7 @@ This library uses an enhanced Timer Input Capture hardware feature when your inp
 ## Basic usage:
 ### General flow
 
-* ```#include "cgh-PulseCapture.h"```
+* ```#include "chipguy-PulseCapture.h"```
 * Create an instance of the class.
 * Call ```begin()```
 * No further action is needed for the class to receive incoming event messages.
