@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <Arduino.h>
 #include "chipguy_PulseCapture.h"
-#include "chipguy_pulsecapture_privates.h"
+#include "chipguy_PulseCapture_privates.h"
 
 
 
@@ -48,16 +48,13 @@ void chipguy_wiegand_helper::_handle_edge(char edgeKind, uint32_t timediff32, ui
 
 	// send it to the d1 instance for handling, adding a bit flag to indicate
 	// that it has been sent over.
+	d1instance->lastTimestamp = lastTimestamp;
 	d1instance->_handle_edge(edgeKind + 0x80, timediff32, timediff);
 }
 
 void chipguy_WiegandRx::_handle_edge(char edgeKind, uint32_t timediff32, uint16_t timediff) {
 
-	// sync the time stamps to the later of the two pins.
-	if (((long)lastTimestamp - (long)helper.lastTimestamp) > 0) 	
-		helper.lastTimestamp = lastTimestamp;
-	else lastTimestamp = helper.lastTimestamp;
-
+	helper.lastTimestamp = lastTimestamp;
 
 	// if we have a 0, then we are looking at the 0-pin of a two-pin Wiegand setup.
 	bool is0=false, is1=true;
@@ -86,7 +83,7 @@ void chipguy_WiegandRx::_handle_edge(char edgeKind, uint32_t timediff32, uint16_
 			}
 			bitsreceived++;
 		}
-	} else if (edgeKind=='T' && timediff > 5000) {            
+	} else if (edgeKind=='T' && timediff > 25000) {            
 		if (bitsreceived==4 || bitsreceived==26 || bitsreceived==34) {
 			capturedMessage = capbuf;
 			capturedBitCount=4;              

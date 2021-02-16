@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 #include <Arduino.h>
-#include "chipguy_pulsecapture.h"
-#include "chipguy_pulsecapture_privates.h"
+#include "chipguy_PulseCapture.h"
+#include "chipguy_PulseCapture_privates.h"
 
 
 

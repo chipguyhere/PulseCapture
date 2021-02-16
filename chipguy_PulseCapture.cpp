@@ -19,8 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 #include <Arduino.h>
-#include "chipguy_pulsecapture.h"
-#include "chipguy_pulsecapture_privates.h"
+#include "chipguy_PulseCapture.h"
+#include "chipguy_PulseCapture_privates.h"
 
 
 // Pins Supported:
@@ -66,14 +66,15 @@ void debugEdgeEvents() {
 	
 	while (debugTail != edgeEventHead) {
 		edgeevent *ee = &edgeEvents[debugTail];
+		/*
 		if (ee->portid != 'T') {
 			Serial.print("portid=");
-			Serial.print(ee->portid);
+			Serial.print((char)ee->portid);
 			Serial.print(" portRead=");
 			Serial.print(ee->portRead);
 			Serial.print(" timer=");
 			Serial.println(ee->timer);
-		}		
+		}	*/	
 		debugTail++;
 		if (debugTail==edgeEventCount) debugTail=0;	
 	}

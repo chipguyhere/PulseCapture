@@ -16,8 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include <Arduino.h>
-#include "chipguy_pulsecapture.h"
-#include "chipguy_pulsecapture_privates.h"
+#include "chipguy_PulseCapture.h"
+#include "chipguy_PulseCapture_privates.h"
 
 
 #ifdef ARDUINO_AVR_NANO_EVERY
@@ -63,7 +63,8 @@ TCB_t *mainTimer=NULL;
 
 ISR(TCA0_CMP1_vect) {
   TCA0.SINGLE.INTFLAGS |= 0x20; // acknowledge the interrupt
-  if (mainTimer) {  
+  if (mainTimer) {
+  	main_timer_is_micros=false;  
     uint16_t cnt = mainTimer->CNT;
     if (cnt < ovfwatch) {
       ovfcount++;
@@ -71,9 +72,10 @@ ISR(TCA0_CMP1_vect) {
     } else {
       ovfwatch=cnt;
     }
-    cgh_pulsecapture_add_tick_to_queue(ovfcount*65536 + cnt);  
+    cgh_pulsecapture_add_tick_to_queue(ovfcount*65536UL + cnt);  
     
   } else {
+  	main_timer_is_micros=true;
     cgh_pulsecapture_add_tick_to_queue(micros());    
   }
   
@@ -190,7 +192,9 @@ int PulseCapture::begin(void) {
   
   // Avoid taking timers for Wiegand protocol because they're not useful.
   // Instead we'll attachInterrupt and filter for falls.
-  if (protocol=='W' || protocol=='0') selectedTimer=0xff;
+  // BUG TO FIX: if a sketch only uses Wiegand and no timers get setup,
+  // the main timer seems to tick at 32x
+  //if (protocol=='W' || protocol=='0') selectedTimer=0xff;
 
   if (selectedTimer != 0xff){
     if (portid=='B' || portid=='D' || portid=='F') chanx += 8;
