@@ -19,6 +19,9 @@ simultaneous pins.  Create it as follows:
 ```
   chipguy_WiegandRx wiegand(4, 5);   // Read Wiegand protocol on pins 4 (Data0) and 5 (Data1)
 ```
+
+Just like usual, in ```setup()``` there needs to be ```wiegand.begin();```
+
 In your ```loop()```, receivedBitCount will indicate 4, 24, or 32 when a message is received, or 0 if none.
 
 ```  
