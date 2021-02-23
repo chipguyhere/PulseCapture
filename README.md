@@ -79,9 +79,7 @@ In your ```loop()```, you can poll for received IR messages with the ```read()``
   }
 ```
 
-The "key held down" is a special message in the IR protocol, returned by the class as a single bit message of 1.
-
-The IR receiver class will silently overwrite unread IR messages with newly received ones.  This is intentional and by design.  The buffer holds only 1 message.  The special "key held down" message will be discarded if the buffer is full, rather than having it overwrite the unread message it refers to.
+The "key held down" is a special message in the IR protocol, returned by the class as a single bit message of ```1```.  The special "key held down" message will be discarded if the buffer is full, rather than having it overwrite the (likely) unread message it refers to.
 
 ### Wiegand (RFID) receiver:
 
