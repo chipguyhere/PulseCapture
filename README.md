@@ -10,23 +10,23 @@ that uses *hardware timer capture* to capture several types of pulsed digital si
 
 *Hardware timer capture* is a feature of the AVR chips that offloads the time stamping of incoming pulses
 to the on-chip *timer* units.  Without this step, other activities performed by your sketch cause delays between
-receiving a signal and processing it, which interferes with reliability and quality.  Addressable LED
-strips are a popular culprit for adding disruptive delays to sketches.
+receiving a signal and processing it, which interferes with reliability and quality.  Addressable color LED
+strips are common cause of extreme interrupt latency.
 
 ## Supported models and pins
-On Arduino Uno and Nano, you can use any digital or analog input.  The Pin Change Interrupt is used for capture, which is hardware-supported on all pins.
+On Arduino Uno and Nano, you can use any digital or analog input, especially pin __8__.  The Pin Change Interrupt is used for capture, which is hardware-supported on all pins.
 
-On Arduino Mega, only these pins are supported: 10, 11, 12, 13, 48, 49, 50, 51, 52, 53, and A8 thru A15.
+On Arduino Mega, only these pins are supported: 10, 11, 12, 13, __48__, __49__, 50, 51, 52, 53, and A8 thru A15.
 
 On Arduino Nano Every, all pins are supported.
 
-On 32u4 including Leonardo and Micro, only these pins are supported: 4,8,9,10,11,13,MISO,SCK,MOSI (ICSP pins).
+On 32u4 including Leonardo and Micro, only these pins are supported: __4__,8,9,10,11,__13__,MISO,SCK,MOSI (ICSP pins).
 
 This library uses an enhanced Timer Input Capture hardware feature when your input is connected to the specific pin(s) that support it.  This is highly recommended for infrared and servo PWM input, especially on projects that have excessive interrupt latency elsewhere (such as those driving WS281xx LED strips).  Servo resolution on non-enhanced pins is limited to 4ms and subject to potential jitter from other onboard interrupts.
 
 * On Uno and Nano, pin 8
 * On Mega, pins 48 and 49.
-* On Nano Every, all pins, up to 3 simultaneous.
+* On Nano Every, all pins.  Full hardware capture available on any 2 pins simultaneously.  Full hardware capture also available on *almost* any 3 pins (see list of exceptions).
 * On 32u4, pins 4 and 13.
 
 ## How to install:
@@ -59,7 +59,7 @@ This library uses an enhanced Timer Input Capture hardware feature when your inp
 ### Basic usage of Infrared receiver:
 
 ```
-  chipguy_irReceiver(8);
+  chipguy_irReceiver IR_receiver(8);
 ```
 In your ```setup()```:
 ```
@@ -80,7 +80,8 @@ In your ```loop()```, you can poll for received IR messages with the ```read()``
 ```
 
 The "key held down" is a special message in the IR protocol, returned by the class as a single bit message of 1.
-The class will not allow the "key held down" message to overwrite any other unread message in the receive buffer.
+
+The IR receiver class will silently overwrite unread IR messages with newly received ones.  This is intentional and by design.  The buffer holds only 1 message.  The special "key held down" message will be discarded if the buffer is full, rather than having it overwrite the unread message it refers to.
 
 ### Wiegand (RFID) receiver:
 
@@ -111,14 +112,13 @@ The following timers get taken:
 * 32u4/Leonardo/Micro: Timer1, Timer3
 * Every: TCB0, TCB1, TCB2
 
-This library also takes one of your Compare Match interrupts on your main system timer (Timer0 or TCA0), though I can't think of what existing libraries this might impact (the timer remains usable for PWM etc.)
+This library also takes one of your Compare Match interrupts on your main system timer (Timer0 or TCA0) (though the timer remains usable for PWM etc.)
 
 ### Arduino Every limitation
-Arduino Every's "event routing" system has a minor limitation to be aware of.  Only two pins from the same "group" can have hardware timer capture enabled.  Timers are assigned at ```begin()```, so the third pin ```begin()``` in a single group will return ```1``` instead of ```3```.
+Arduino Every's "event routing" system has a minor limitation to be aware of.  Only two pins from a single "group" can have hardware timer capture enabled, so if you enable three pins, they must be spread across two or more groups, or else the third pin to call ```begin()``` will revert to non-hardware capture.
 * First group (D2, D5, D7, D9, D10)
 * Second group (D0, D1, D4, A0, A1, A2, A3, A6, A7)
 * Third group (D3, D6, D8, D11, D12, D13, A4, A5)
-* Wiegand automatically avoids using hardware timer capture as it does not require it.
 
 
 
