@@ -9,9 +9,11 @@ that uses *hardware timer capture* to capture several types of pulsed digital si
 * Hardware-assisted Soft Serial Rx
 
 *Hardware timer capture* is a feature of the AVR chips that offloads the time stamping of incoming pulses
-to the on-chip *timer* units.  Without this step, other activities performed by your sketch (like updating ```millis()```)
-will add unpredictable delays between
+to the on-chip *timer* units.  Without this step, other background activities performed while your sketch runs (like
+increasing the ```millis()``` count, or checking for incoming serial data)
+will add short but frequent unpredictable delays between
 receiving a signal and processing it, several times per second, which interferes with reliability and quality.
+
 These delays (especially when observed on servo readings) are sometimes called "jitter".
 Running color LED strips from a sketch is a frequent and common cause of extreme jitter.
 
