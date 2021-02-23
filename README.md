@@ -9,9 +9,11 @@ that uses *hardware timer capture* to capture several types of pulsed digital si
 * Hardware-assisted Soft Serial Rx
 
 *Hardware timer capture* is a feature of the AVR chips that offloads the time stamping of incoming pulses
-to the on-chip *timer* units.  Without this step, other activities performed by your sketch cause delays between
-receiving a signal and processing it, which interferes with reliability and quality.  Addressable color LED
-strips are common cause of extreme interrupt latency.
+to the on-chip *timer* units.  Without this step, other activities performed by your sketch (like updating ```millis()```)
+will add unpredictable delays between
+receiving a signal and processing it, several times per second, which interferes with reliability and quality.
+These delays (especially when observed on servo readings) are sometimes called "jitter".
+Running color LED strips from a sketch is a frequent and common cause of extreme jitter.
 
 ## Supported models and pins
 On Arduino Uno and Nano, you can use any digital or analog input, especially pin __8__.  The Pin Change Interrupt is used for capture, which is hardware-supported on all pins.
