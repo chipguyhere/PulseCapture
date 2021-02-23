@@ -43,8 +43,8 @@ This library uses an enhanced Timer Input Capture hardware feature when your inp
 * ```#include "chipguy-PulseCapture.h"```
 * Create an instance of the class.
 * Call ```begin()```
-* No further action is needed for the class to receive incoming event messages.
-* Poll for incoming events using ```read()```, which always returns immediately, with either a complete message, or a return value of 0 and a bit count of 0 if there is no complete message received.
+* No further action is needed for the class to receive incoming event messages, as all of this processing is handled in the background via interrupts.
+* Poll for incoming events using ```read()```, which always returns immediately, with either a complete message, or a return value of 0 and a bit count of 0 if there is not yet a complete message received.
 
 #### Notes
 * An event is the arrival of a complete message (such as a complete IR command, or a complete RFID card swipe, or a complete PWM timing measurement).
