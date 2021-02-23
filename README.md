@@ -88,7 +88,7 @@ The "key held down" is a special message in the IR protocol, returned by the cla
 ### Wiegand (RFID) receiver:
 
 Wiegand is a popular two-wire protocol for RFID readers.  Receiving a message from a card reader is very similar
-to receiving one from an infrared receiver -- the message is a number up to 32 bits and simply shows up.
+to receiving one from an infrared receiver -- the message is a number up to 32 bits and simply shows up when the hardware receives it.
 [Details](docs/Wiegand.md)
 
 
