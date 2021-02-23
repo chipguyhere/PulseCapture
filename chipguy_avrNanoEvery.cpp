@@ -29,7 +29,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // TCA0 contains the prescaler that feeds into the TCB clocks.
 //   (without the prescaler, /1 and /2 are the only options).
 // TCA0 has three compare channels (CMP0,CMP1,CMP2) that drive compare interrupts and PWM.
-// Arduino sets TCA to count from 0 to 0xFF and rolls over 1024 times per second.
+// Arduino core sets TCA to count from 0 to 0xFF and rolls over 1024 times per second.
 
 // TCB0,1,2,3 can each capture one thing: an edge, a pulse, or an overflow.
 // TCB3 is driven by TCA0 and is used by millis() to capture overflows
@@ -47,11 +47,15 @@ volatile uint16_t ovfcount=0;
 
 void isr_tcbx(TCB_t &TCBx, char portid);
 
+// Saved things that TCB ISR will need to query state of pins to validate edges.
+byte tcbxmasks[4];
+byte *tcbxinregs[4];
+
 // Taking timers B0,B1,B2 for hardware capture feature (leaving B3 alone)
 // One timer is used per active pin (except Wiegand, which doesn't use the timers)
 // TODO: MAKE IT EASIER FOR SKETCH WRITERS TO NOT TAKE 3 TIMERS IF WE DON'T NEED 3
 // but for now, to stop this library from taking a timer, just comment out the ISR,
-// and set the timerAvailable flag to false (similar to Timer B3)
+// and set the timerAvailable flag (next line) to false (similar to Timer B3)
 bool timerAvailable[4] = {true,true,true,false};
 ISR(TCB0_INT_vect) { isr_tcbx(TCB0, '0'); }
 ISR(TCB1_INT_vect) { isr_tcbx(TCB1, '1'); }
@@ -94,14 +98,46 @@ uint32_t cgh_pulse_get_adjusted_timestamp(uint16_t time16) {
   return timestamp;
 }
 
+// Interrupt service routine for a timer capture that is indicating a capture.
 void isr_tcbx(TCB_t &TCBx, char portid) {
+
+	// Save the timestamp of when the capture occurred.
 	uint32_t timestamp;
 	if ((TCBx.CTRLA & 0x06)==TCB_CLKSEL_CLKDIV2_gc) timestamp = TCBx.CCMP;
 	else timestamp = cgh_pulse_get_adjusted_timestamp(TCBx.CCMP);
+	
+	// Note whether we were looking to capture a rising or falling edge.
   byte edge = 1; // rising
   if (TCBx.EVCTRL & 0x10) edge=0;
   TCBx.EVCTRL ^= 0x10;
+  
+  // Add the event to the queue.
   cgh_pulsecapture_add_event_to_queue(edge, portid, timestamp);
+  
+  
+
+  // Most of the time, we are done.
+  // If the pulse was extremely short, or CPU was extremely busy, we might
+  // have missed the edge going the other direction.  If we don't catch this,
+  // we will be searching for the wrong edge and miss the right one.
+  byte portidx = portid - '0';
+  byte mask = tcbxmasks[portidx];
+  byte *inreg = tcbxinregs[portidx];
+  
+  // Therefore, we shall determine whether we have missed the opposite edge.
+  // We read the pin and compare with the edge polarity we just reported.
+  byte pinstate = (*inreg) & mask;
+  if (pinstate && edge) return; // got true expected true, didn't miss.
+  if (pinstate==0 && edge==0) return; // got false expected false, didn't miss.
+  // We must have missed.
+	// flip edge polarity, and queue the other edge using timestamp of now.
+	if ((TCBx.CTRLA & 0x06)==TCB_CLKSEL_CLKDIV2_gc) timestamp = TCBx.CNT;
+	else timestamp = cgh_pulse_get_adjusted_timestamp(TCBx.CNT);
+	edge ^= 1;
+  TCBx.EVCTRL ^= 0x10;
+  cgh_pulsecapture_add_event_to_queue(edge, portid, timestamp);
+  
+  
 }
 
 
@@ -155,6 +191,7 @@ int PulseCapture::begin(void) {
   pinMode(pin, INPUT_PULLUP);
   portid = 'A' + digitalPinToPort(pin); 
   mask = digitalPinToBitMask(pin);  
+  PORT_t* portstruct = digitalPinToPortStruct(pin);
 
   noInterrupts();
 
@@ -222,6 +259,9 @@ int PulseCapture::begin(void) {
         case 2: EVSYS.USERTCB2 = selectedChannel; TCBx = &TCB2; break;
         case 3: EVSYS.USERTCB3 = selectedChannel; TCBx = &TCB3; break;
       }
+		
+			tcbxmasks[selectedTimer]=mask;
+			tcbxinregs[selectedTimer]=&(portstruct->IN);
 		
 			// set timer counter mode to capture event  
 			TCBx->CTRLB = TCB_CNTMODE_CAPT_gc;
