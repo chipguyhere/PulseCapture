@@ -26,7 +26,7 @@ On Arduino Nano Every, all pins are supported.
 
 On 32u4 including Leonardo and Micro, only these pins are supported: __4__,8,9,10,11,__13__,MISO,SCK,MOSI (ICSP pins).
 
-This library uses an enhanced Timer Input Capture hardware feature when your input is connected to the specific pin(s) that support it.  This is highly recommended for infrared and servo PWM input, especially on projects that have excessive interrupt latency elsewhere (such as those driving WS281xx LED strips).  Servo resolution on non-enhanced pins is limited to 4ms and subject to potential jitter from other onboard interrupts.
+This library uses an enhanced Timer Input Capture hardware feature when your input is connected to the specific pin(s) that support it.  This is highly recommended for infrared and servo PWM input, especially on projects that have excessive interrupt latency elsewhere (such as those driving WS281xx LED strips).  Servo resolution on non-enhanced pins is limited to 4µs and subject to potential jitter from other onboard interrupts.
 
 * On Uno and Nano, pin 8
 * On Mega, pins 48 and 49.
