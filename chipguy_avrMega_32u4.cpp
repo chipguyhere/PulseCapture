@@ -46,7 +46,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define TIMERx_OVF_vect TIMER4_OVF_vect
 #define TIMERy_OVF_vect TIMER5_OVF_vect
 void ISRX(uint8_t PINx, char _portid, uint16_t cntx, uint16_t cnty);
-ISR(PCINT2_vect) { ISRX(PIND, 'K', TCNTx, TCNTy); } 
+ISR(PCINT2_vect) { ISRX(PINK, 'K', TCNTx, TCNTy); } 
 #endif
 
 #ifdef model_32U4
