@@ -6,7 +6,7 @@ that uses *hardware timer capture* to capture several types of pulsed digital si
 * Infrared remote-control signals
 * Wiegand (two-wire protocol used in RFID readers)
 * Servo PWM with sub-microsecond resolution
-* Hardware-assisted Soft Serial Rx
+* Hardware-assisted Soft Serial Rx, and support for simultaneous active instances (Rx on multiple pins at the same time)
 
 *Hardware timer capture* is a feature of the AVR chips that offloads the time stamping of incoming pulses
 to the on-chip *timer* units.  Without this step, other background activities performed while your sketch runs (like
