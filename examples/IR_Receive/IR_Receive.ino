@@ -12,9 +12,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "cgh_PulseCapture.h"
+#include "chipguy_PulseCapture.h"
 
-PulseCapture IR_receiver(8, 'I');
+chipguy_irReceiver IR_receiver(8);
 
 void setup() {
   Serial.begin(115200);
@@ -32,10 +32,10 @@ void setup() {
 
 void loop() {
 
-  byte receivedBitCount;
+  int receivedBitCount;
 
   // Read a message and bit count (which will be zero if no message is returned)
-  unsigned long message =  IR_receiver.read(&receivedBitCount);
+  unsigned long message =  IR_receiver.read(receivedBitCount);
   if (receivedBitCount==32) {
     Serial.print("IR received: ");
     Serial.println(message, HEX);
