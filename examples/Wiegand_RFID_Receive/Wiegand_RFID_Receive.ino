@@ -18,9 +18,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 // Wiegand isn't timing critical and doesn't benefit from timer-enhanced input capture.
 // Feel free to use any supported pins.
 
-#include "cgh_PulseCapture.h"
+#include "chipguy_PulseCapture.h"
 
-Wiegand wiegand_receiver(10, 11);
+chipguy_WiegandRx wiegand_receiver(10, 11);
 
 void setup() {
   Serial.begin(115200);
@@ -44,10 +44,10 @@ void setup() {
 
 void loop() {
 
-  byte receivedBitCount;
+  int receivedBitCount;
 
   // Read a message and bit count (which will be zero if no message is returned)
-  unsigned long message =  wiegand_receiver.read(&receivedBitCount);
+  unsigned long message =  wiegand_receiver.read(receivedBitCount);
 
   if (receivedBitCount) {
     // We'll receive 24 or 32 bits from a 26 or 34 bit Wiegand message.
